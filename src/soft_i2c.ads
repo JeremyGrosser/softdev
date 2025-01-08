@@ -15,6 +15,8 @@ generic
    --  When High = False, the output driver is enabled and the pin is pulled low (open-drain)
    --  Never drive the pin high.
    --  Never use internal pull-up resistors.
+
+   Clock_Stretch_Enabled : Boolean := False;
 package Soft_I2C is
 
    subtype I2C_Address is HAL.UInt7;
@@ -30,9 +32,6 @@ package Soft_I2C is
       (Addr    : I2C_Address;
        Command : UInt8;
        Data    : out UInt8);
-
-   --  Configuration
-   Clock_Stretch_Enabled : Boolean := False;
 
    --  Status
    NACK : Boolean := False;
