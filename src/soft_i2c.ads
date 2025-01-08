@@ -3,6 +3,7 @@
 --
 --  SPDX-License-Identifier: BSD-3-Clause
 --
+pragma Style_Checks ("M120");
 with HAL; use HAL;
 
 generic
@@ -10,7 +11,7 @@ generic
    with procedure Get_SCL (High : out Boolean);
    with procedure Set_SDA (High : Boolean);
    with procedure Get_SDA (High : out Boolean);
-   --  When High = True, the output driver should be disabled and the pin left floating
+   --  When High = True, the output driver is disabled and the pin left floating
    --  When High = False, the output driver is enabled and the pin is pulled low (open-drain)
    --  Never drive the pin high.
    --  Never use internal pull-up resistors.

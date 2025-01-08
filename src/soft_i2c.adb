@@ -11,11 +11,6 @@ package body Soft_I2C is
       Set_SDA (True);
    end Release_Bus;
 
-   procedure Initialize is
-   begin
-      Release_Bus;
-   end Initialize;
-
    procedure Start_Condition is
    begin
       NACK := False;
@@ -65,7 +60,7 @@ package body Soft_I2C is
       end if;
    end ACK;
 
-   procedure Send
+   procedure Clock_Out
       (Data : UInt8)
    is
       D : UInt8 := Data;
@@ -76,27 +71,7 @@ package body Soft_I2C is
          D := Shift_Left (D, 1);
       end loop;
       ACK;
-   end Send;
-
-   procedure Release_Data is
-   begin
-      Set_SDA (True);
-   end Release_Data;
-
-   type I2C_Mode is (Read, Write);
-
-   procedure Set_Mode
-      (Addr : I2C_Address;
-       Mode : I2C_Mode)
-   is
-      Data : UInt8 := Shift_Left (UInt8 (Addr), 1);
-   begin
-      if Mode = Read then
-         Data := Data or 1;
-      end if;
-      Send (Data);
-      Release_Data;
-   end Set_Mode;
+   end Clock_Out;
 
    procedure Clock_In
       (Data : out UInt8)
@@ -115,6 +90,26 @@ package body Soft_I2C is
       ACK;
    end Clock_In;
 
+   type I2C_Mode is (Read, Write);
+
+   procedure Send_Address
+      (Addr : I2C_Address;
+       Mode : I2C_Mode)
+   is
+      Data : UInt8 := Shift_Left (UInt8 (Addr), 1);
+   begin
+      if Mode = Read then
+         Data := Data or 1;
+      end if;
+      Clock_Out (Data);
+      Set_SDA (True);
+   end Send_Address;
+
+   procedure Initialize is
+   begin
+      Release_Bus;
+   end Initialize;
+
    procedure Write_Byte
       (Addr    : I2C_Address;
        Command : UInt8;
@@ -122,10 +117,10 @@ package body Soft_I2C is
    is
    begin
       Start_Condition;
-      Set_Mode (Addr, Write);
+      Send_Address (Addr, Write);
       Start_Condition;
-      Send (Command);
-      Send (Data);
+      Clock_Out (Command);
+      Clock_Out (Data);
       Stop_Condition;
    end Write_Byte;
 
@@ -136,14 +131,14 @@ package body Soft_I2C is
    is
    begin
       Start_Condition;
-      Set_Mode (Addr, Write);
-      Send (Command);
+      Send_Address (Addr, Write);
+      Clock_Out (Command);
 
       --  Repeated Start
       Release_Bus;
       Start_Condition;
 
-      Set_Mode (Addr, Read);
+      Send_Address (Addr, Read);
       Clock_In (Data);
       Stop_Condition;
    end Read_Byte;
