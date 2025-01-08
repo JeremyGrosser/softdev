@@ -1,0 +1,27 @@
+name = "test"
+description = ""
+version = "0.1.0-dev"
+
+authors = ["Jeremy Grosser"]
+maintainers = ["Jeremy Grosser <jeremy@synack.me>"]
+maintainers-logins = ["JeremyGrosser"]
+licenses = "BSD-3-Clause"
+website = ""
+tags = []
+
+executables = ["test"]
+
+[[depends-on]]
+softdev = "*"
+
+[[pins]]
+softdev = { path='..' }
+
+[[depends-on]]
+rp2040_hal = "^2"
+
+[[depends-on]]
+hex_format = "~0.1.0"
+
+[build-profiles]
+"*" = "development"
