@@ -23,6 +23,16 @@ package Soft_I2C is
 
    procedure Initialize;
 
+   procedure Write
+      (Addr : I2C_Address;
+       Data : UInt8_Array;
+       Stop : Boolean := True);
+
+   procedure Read
+      (Addr : I2C_Address;
+       Data : out UInt8_Array;
+       Stop : Boolean := True);
+
    procedure Write_Byte
       (Addr    : I2C_Address;
        Command : UInt8;

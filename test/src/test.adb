@@ -16,6 +16,8 @@ procedure Test is
    package Hex_Format_8 is new Generic_Hex_Format (UInt8, Shift_Right);
    use Hex_Format_8;
 
+   NOR_Addr : Port.I2C_Address := 2#1010_000#;
+
    MPU_Addr       : constant Port.I2C_Address := 2#110_1000#;
    SMPLRT_DIV     : constant UInt8 := 16#19#;
    CONFIG         : constant UInt8 := 16#1A#;
@@ -25,27 +27,52 @@ procedure Test is
 
    Gyro_Data  : UInt8_Array (16#43# .. 16#48#);
    Accel_Data : UInt8_Array (16#3B# .. 16#40#);
+
+   Counter : UInt8 := 0;
 begin
    RP.Clock.Initialize (12_000_000);
    Soft_I2C_RP2040.Initialize;
 
-   T := Clock;
-   Port.Write_Byte (MPU_Addr, PWR_MGMT_1, 16#80#); --  device reset
+   --  Port.Write_Byte (MPU_Addr, PWR_MGMT_1, 16#80#); --  device reset
+   --  Timer.Delay_Milliseconds (100);
+   --  Port.Write_Byte (MPU_Addr, PWR_MGMT_1, 16#03#); --  clksel = z gyro
+   --  Port.Write_Byte (MPU_Addr, SMPLRT_DIV, 16#00#);
+   --  Timer.Delay_Milliseconds (15);
+   --  Port.Write_Byte (MPU_Addr, CONFIG, 16#00#); --  disable fsync, acc bw 260 Hz, gyro bw 256 Hz
+   --  Port.Write_Byte (MPU_Addr, GYRO_CONFIG, 2#000_11_000#); --  +/- 2000deg/s gyro limit
+   --  Port.Write_Byte (MPU_Addr, ACCEL_CONFIG, 2#000_11_000#); --  +/- 16g accel limit
 
-   T := Clock + Milliseconds (100);
-   Port.Write_Byte (MPU_Addr, PWR_MGMT_1, 16#03#); --  clksel = z gyro
+   Soft_I2C_RP2040.Timer.Delay_Milliseconds (10);
 
-   T := Clock;
-   Port.Write_Byte (MPU_Addr, SMPLRT_DIV, 16#00#);
+   loop
+      declare
+         Page : UInt8_Array (1 .. 2) := (0, 0);
+         Data : UInt8_Array (1 .. 8);
+      begin
+         Ada.Text_IO.Put ("NOR: Addr=");
+         Ada.Text_IO.Put (Hex (UInt8 (NOR_Addr)));
+         Ada.Text_IO.Put (' ');
+         for I in Data'Range loop
+            Data (I) := Counter;
+            Counter := Counter + 1;
+         end loop;
+         Port.Write (NOR_Addr, Page & Data);
 
-   T := Clock + Milliseconds (15);
-   Port.Write_Byte (MPU_Addr, CONFIG, 16#00#); --  disable fsync, acc bw 260 Hz, gyro bw 256 Hz
+         Soft_I2C_RP2040.Timer.Delay_Milliseconds (10);
 
-   T := Clock;
-   Port.Write_Byte (MPU_Addr, GYRO_CONFIG, 2#000_11_000#); --  +/- 2000deg/s gyro limit
-
-   T := Clock;
-   Port.Write_Byte (MPU_Addr, ACCEL_CONFIG, 2#000_11_000#); --  +/- 16g accel limit
+         loop
+            Port.Write (NOR_Addr, Page, Stop => False);
+            exit when not Port.NACK;
+         end loop;
+         Data := (others => 16#55#);
+         Port.Read (NOR_Addr, Data);
+         for D of Data loop
+            Ada.Text_IO.Put (Hex (D));
+            Ada.Text_IO.Put (' ');
+         end loop;
+         Ada.Text_IO.New_Line;
+      end;
+   end loop;
 
    loop
       T := Clock;

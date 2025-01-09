@@ -4,11 +4,13 @@
 --  SPDX-License-Identifier: BSD-3-Clause
 --
 with RP.Timer; use RP.Timer;
+with RP.Timer.Interrupts;
 with Soft_I2C;
 
 package Soft_I2C_RP2040 is
 
    T : Time;
+   Timer : RP.Timer.Interrupts.Delays;
 
    procedure Initialize;
 
@@ -28,6 +30,7 @@ package Soft_I2C_RP2040 is
       (Set_SDA => Set_SDA,
        Set_SCL => Set_SCL,
        Get_SDA => Get_SDA,
-       Get_SCL => Get_SCL);
+       Get_SCL => Get_SCL,
+       Clock_Stretch_Enabled => True);
 
 end Soft_I2C_RP2040;

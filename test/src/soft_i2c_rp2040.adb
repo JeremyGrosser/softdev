@@ -8,7 +8,6 @@ with RP2040_SVD.RESETS; use RP2040_SVD.RESETS;
 with RP2040_SVD.SIO; use RP2040_SVD.SIO;
 with RP2040_SVD.PADS_BANK0; use RP2040_SVD.PADS_BANK0;
 with RP2040_SVD.IO_BANK0; use RP2040_SVD.IO_BANK0;
-with RP.Timer.Interrupts;
 with HAL; use HAL;
 
 package body Soft_I2C_RP2040 is
@@ -16,8 +15,6 @@ package body Soft_I2C_RP2040 is
    --  SCL_Pin  : constant := 1;
    SDA_Mask : constant UInt30 := 2#01#;
    SCL_Mask : constant UInt30 := 2#10#;
-
-   Timer : RP.Timer.Interrupts.Delays;
 
    procedure Initialize is
    begin
@@ -45,13 +42,14 @@ package body Soft_I2C_RP2040 is
       Timer.Enable;
    end Initialize;
 
-   SDA_Hold : constant := 4;
-   SCL_Hold : constant := 4;
+   SDA_Hold : constant := 10;
+   SCL_Hold : constant := 10;
 
    procedure Set_SDA
       (High : Boolean)
    is
    begin
+      T := Clock;
       T := T + SDA_Hold;
       Timer.Delay_Until (T);
 
@@ -69,6 +67,7 @@ package body Soft_I2C_RP2040 is
       (High : Boolean)
    is
    begin
+      T := Clock;
       T := T + SCL_Hold;
       Timer.Delay_Until (T);
 
@@ -86,7 +85,6 @@ package body Soft_I2C_RP2040 is
       (High : out Boolean)
    is
    begin
-      Set_SDA (True);
       High := (SIO_Periph.GPIO_IN.GPIO_IN and SDA_Mask) /= 0;
    end Get_SDA;
 
@@ -94,7 +92,6 @@ package body Soft_I2C_RP2040 is
       (High : out Boolean)
    is
    begin
-      Set_SCL (True);
       High := (SIO_Periph.GPIO_IN.GPIO_IN and SCL_Mask) /= 0;
    end Get_SCL;
 

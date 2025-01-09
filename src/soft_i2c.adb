@@ -30,6 +30,7 @@ package body Soft_I2C is
       Set_SCL (True);
       if Clock_Stretch_Enabled then
          loop
+            --  If the target doesn't release SCL after a while, try forcing it.
             for I in 1 .. 1000 loop
                Get_SCL (CLK);
                if CLK then
@@ -48,17 +49,23 @@ package body Soft_I2C is
       Set_SCL (False);
    end Clock;
 
-   procedure ACK is
-      DAT : Boolean;
+   procedure Write_ACK is
    begin
       Set_SDA (True);
       Clock_High;
-      Get_SDA (DAT);
+      Get_SDA (NACK);
       Set_SCL (False);
-      if DAT then
-         NACK := True;
-      end if;
-   end ACK;
+   end Write_ACK;
+
+   procedure Read_ACK
+      (Last_Byte : Boolean)
+   is
+   begin
+      Set_SDA (Last_Byte);
+      Clock_High;
+      Get_SDA (NACK);
+      Set_SCL (False);
+   end Read_ACK;
 
    procedure Clock_Out
       (Data : UInt8)
@@ -70,11 +77,12 @@ package body Soft_I2C is
          Clock;
          D := Shift_Left (D, 1);
       end loop;
-      ACK;
+      Write_ACK;
    end Clock_Out;
 
    procedure Clock_In
-      (Data : out UInt8)
+      (Data : out UInt8;
+       Last_Byte : Boolean)
    is
       High : Boolean;
    begin
@@ -87,7 +95,7 @@ package body Soft_I2C is
          end if;
          Clock;
       end loop;
-      ACK;
+      Read_ACK (Last_Byte);
    end Clock_In;
 
    type I2C_Mode is (Read, Write);
@@ -110,6 +118,55 @@ package body Soft_I2C is
       Release_Bus;
    end Initialize;
 
+   procedure End_Transaction
+      (Stop : Boolean)
+   is
+   begin
+      if Stop then
+         Stop_Condition;
+      else
+         Release_Bus;
+      end if;
+   end End_Transaction;
+
+   procedure Write
+      (Addr : I2C_Address;
+       Data : UInt8_Array;
+       Stop : Boolean := True)
+   is
+   begin
+      Start_Condition;
+      Send_Address (Addr, Write);
+      if NACK then
+         Stop_Condition;
+      else
+         for I in Data'Range loop
+            Clock_Out (Data (I));
+            exit when NACK;
+         end loop;
+         End_Transaction (Stop);
+      end if;
+   end Write;
+
+   procedure Read
+      (Addr : I2C_Address;
+       Data : out UInt8_Array;
+       Stop : Boolean := True)
+   is
+   begin
+      Start_Condition;
+      Send_Address (Addr, Read);
+      if NACK then
+         Stop_Condition;
+      else
+         for I in Data'Range loop
+            Clock_In (Data (I), I = Data'Last);
+            --  exit when NACK;
+         end loop;
+         End_Transaction (Stop);
+      end if;
+   end Read;
+
    procedure Write_Byte
       (Addr    : I2C_Address;
        Command : UInt8;
@@ -118,7 +175,6 @@ package body Soft_I2C is
    begin
       Start_Condition;
       Send_Address (Addr, Write);
-      Start_Condition;
       Clock_Out (Command);
       Clock_Out (Data);
       Stop_Condition;
@@ -139,7 +195,7 @@ package body Soft_I2C is
       Start_Condition;
 
       Send_Address (Addr, Read);
-      Clock_In (Data);
+      Clock_In (Data, True);
       Stop_Condition;
    end Read_Byte;
 
