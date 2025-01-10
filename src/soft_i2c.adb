@@ -86,6 +86,7 @@ package body Soft_I2C is
    is
       High : Boolean;
    begin
+      Set_SDA (True);
       Data := 0;
       for I in 0 .. 7 loop
          Data := Shift_Left (Data, 1);
@@ -161,7 +162,6 @@ package body Soft_I2C is
       else
          for I in Data'Range loop
             Clock_In (Data (I), I = Data'Last);
-            --  exit when NACK;
          end loop;
          End_Transaction (Stop);
       end if;

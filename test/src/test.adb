@@ -28,7 +28,7 @@ procedure Test is
    Gyro_Data  : UInt8_Array (16#43# .. 16#48#);
    Accel_Data : UInt8_Array (16#3B# .. 16#40#);
 
-   Counter : UInt8 := 0;
+   Counter : UInt8 := 16#55#;
 begin
    RP.Clock.Initialize (12_000_000);
    Soft_I2C_RP2040.Initialize;
@@ -42,12 +42,10 @@ begin
    --  Port.Write_Byte (MPU_Addr, GYRO_CONFIG, 2#000_11_000#); --  +/- 2000deg/s gyro limit
    --  Port.Write_Byte (MPU_Addr, ACCEL_CONFIG, 2#000_11_000#); --  +/- 16g accel limit
 
-   Soft_I2C_RP2040.Timer.Delay_Milliseconds (10);
-
    loop
       declare
-         Page : UInt8_Array (1 .. 2) := (0, 0);
-         Data : UInt8_Array (1 .. 8);
+         Page : UInt8_Array (1 .. 2) := (16#00#, 16#00#);
+         Data : UInt8_Array (1 .. 4);
       begin
          Ada.Text_IO.Put ("NOR: Addr=");
          Ada.Text_IO.Put (Hex (UInt8 (NOR_Addr)));
@@ -57,8 +55,6 @@ begin
             Counter := Counter + 1;
          end loop;
          Port.Write (NOR_Addr, Page & Data);
-
-         Soft_I2C_RP2040.Timer.Delay_Milliseconds (10);
 
          loop
             Port.Write (NOR_Addr, Page, Stop => False);
