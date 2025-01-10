@@ -49,14 +49,6 @@ package body Soft_I2C is
       Set_SCL (False);
    end Clock;
 
-   procedure Write_ACK is
-   begin
-      Set_SDA (True);
-      Clock_High;
-      Get_SDA (NACK);
-      Set_SCL (False);
-   end Write_ACK;
-
    procedure Read_ACK
       (Last_Byte : Boolean)
    is
@@ -77,7 +69,7 @@ package body Soft_I2C is
          Clock;
          D := Shift_Left (D, 1);
       end loop;
-      Write_ACK;
+      Read_ACK (True);
    end Clock_Out;
 
    procedure Clock_In
