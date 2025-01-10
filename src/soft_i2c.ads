@@ -33,16 +33,6 @@ package Soft_I2C is
        Data : out UInt8_Array;
        Stop : Boolean := True);
 
-   procedure Write_Byte
-      (Addr    : I2C_Address;
-       Command : UInt8;
-       Data    : UInt8);
-
-   procedure Read_Byte
-      (Addr    : I2C_Address;
-       Command : UInt8;
-       Data    : out UInt8);
-
    --  Status
    NACK : Boolean := False;
 

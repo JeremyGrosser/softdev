@@ -25,7 +25,10 @@ project Test is
    end Install;
 
    package Linker is
-      for Switches ("Ada") use RP2040_HAL.Linker_Switches;
+      for Switches ("Ada") use RP2040_HAL.Linker_Switches & (
+         "-Wl,-print-memory-usage",
+         "-Wl,-gc-sections"
+      );
    end Linker;
 
 end Test;

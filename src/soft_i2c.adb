@@ -167,36 +167,4 @@ package body Soft_I2C is
       end if;
    end Read;
 
-   procedure Write_Byte
-      (Addr    : I2C_Address;
-       Command : UInt8;
-       Data    : UInt8)
-   is
-   begin
-      Start_Condition;
-      Send_Address (Addr, Write);
-      Clock_Out (Command);
-      Clock_Out (Data);
-      Stop_Condition;
-   end Write_Byte;
-
-   procedure Read_Byte
-      (Addr    : I2C_Address;
-       Command : UInt8;
-       Data    : out UInt8)
-   is
-   begin
-      Start_Condition;
-      Send_Address (Addr, Write);
-      Clock_Out (Command);
-
-      --  Repeated Start
-      Release_Bus;
-      Start_Condition;
-
-      Send_Address (Addr, Read);
-      Clock_In (Data, True);
-      Stop_Condition;
-   end Read_Byte;
-
 end Soft_I2C;

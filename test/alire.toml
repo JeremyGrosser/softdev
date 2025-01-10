@@ -13,15 +13,11 @@ executables = ["test"]
 
 [[depends-on]]
 softdev = "*"
+rp2040_hal = "^2"
+hex_format = "~0.1.0"
 
 [[pins]]
 softdev = { path='..' }
 
-[[depends-on]]
-rp2040_hal = "^2"
-
-[[depends-on]]
-hex_format = "~0.1.0"
-
-[build-profiles]
-"*" = "development"
+[build-switches]
+release.optimization = ["-gnatn2", "-gnatp", "-Os"]

@@ -42,16 +42,19 @@ package body Soft_I2C_RP2040 is
       Timer.Enable;
    end Initialize;
 
-   SDA_Hold : constant := 5;
-   SCL_Hold : constant := 5;
+   --  Timing in Microseconds
+   --
+   --  This will depend a lot on how long your I/O operations take and what
+   --  your peripheral supports. The following implementation is pretty close
+   --  to I2C Standard Mode (100 KHz) on RP2040. YMMV.
+   SDA_Hold : constant := 0;
+   SCL_Hold : constant := 4;
 
    procedure Set_SDA
       (High : Boolean)
    is
    begin
       T := Clock;
-      --  T := T + SDA_Hold;
-      --  Timer.Delay_Until (T);
 
       if High then
          SIO_Periph.GPIO_OE_CLR.GPIO_OE_CLR := SDA_Mask;
@@ -68,8 +71,6 @@ package body Soft_I2C_RP2040 is
    is
    begin
       T := Clock;
-      --  T := T + SCL_Hold;
-      --  Timer.Delay_Until (T);
 
       if High then
          SIO_Periph.GPIO_OE_CLR.GPIO_OE_CLR := SCL_Mask;
@@ -85,9 +86,6 @@ package body Soft_I2C_RP2040 is
       (High : out Boolean)
    is
    begin
-      T := Clock;
-      T := T + SCL_Hold;
-      Timer.Delay_Until (T);
       High := (SIO_Periph.GPIO_IN.GPIO_IN and SDA_Mask) /= 0;
    end Get_SDA;
 
