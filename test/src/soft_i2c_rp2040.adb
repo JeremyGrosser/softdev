@@ -9,12 +9,21 @@ with RP2040_SVD.SIO; use RP2040_SVD.SIO;
 with RP2040_SVD.PADS_BANK0; use RP2040_SVD.PADS_BANK0;
 with RP2040_SVD.IO_BANK0; use RP2040_SVD.IO_BANK0;
 with HAL; use HAL;
+with System;
 
 package body Soft_I2C_RP2040 is
    --  SDA_Pin  : constant := 0;
    --  SCL_Pin  : constant := 1;
-   SDA_Mask : constant UInt30 := 2#01#;
-   SCL_Mask : constant UInt30 := 2#10#;
+   SDA_Mask : constant UInt32 := 2#01#;
+   SCL_Mask : constant UInt32 := 2#10#;
+
+   SIO_BASE : constant := 16#D000_0000#;
+   GPIO_IN : UInt32
+      with Import, Volatile_Full_Access, Address => System'To_Address (SIO_BASE + 16#004#);
+   GPIO_OE_SET : UInt32
+      with Import, Volatile_Full_Access, Address => System'To_Address (SIO_BASE + 16#024#);
+   GPIO_OE_CLR : UInt32
+      with Import, Volatile_Full_Access, Address => System'To_Address (SIO_BASE + 16#028#);
 
    procedure Initialize is
    begin
@@ -36,8 +45,8 @@ package body Soft_I2C_RP2040 is
       IO_BANK0_Periph.GPIO0_CTRL.FUNCSEL := sio_0;
       IO_BANK0_Periph.GPIO1_CTRL.FUNCSEL := sio_1;
 
-      SIO_Periph.GPIO_OE_CLR.GPIO_OE_CLR := SDA_Mask or SCL_Mask;
-      SIO_Periph.GPIO_OUT_CLR.GPIO_OUT_CLR := SDA_Mask or SCL_Mask;
+      GPIO_OE_CLR := SDA_Mask or SCL_Mask;
+      SIO_Periph.GPIO_OUT_CLR.GPIO_OUT_CLR := UInt30 (SDA_Mask or SCL_Mask);
 
       Timer.Enable;
    end Initialize;
@@ -46,54 +55,46 @@ package body Soft_I2C_RP2040 is
    --
    --  This will depend a lot on how long your I/O operations take and what
    --  your peripheral supports. The following implementation is pretty close
-   --  to I2C Standard Mode (100 KHz) on RP2040. YMMV.
-   SDA_Hold : constant := 0;
-   SCL_Hold : constant := 4;
+   --  to I2C Standard Mode (100 KHz) on RP2040.
+   --
+   --  Without delays, we can do about 1.6 MHz I2C here. More than fast enough.
+   SCL_Hold : constant := 5;
 
    procedure Set_SDA
       (High : Boolean)
    is
    begin
-      T := Clock;
-
       if High then
-         SIO_Periph.GPIO_OE_CLR.GPIO_OE_CLR := SDA_Mask;
+         GPIO_OE_CLR := SDA_Mask;
       else
-         SIO_Periph.GPIO_OE_SET.GPIO_OE_SET := SDA_Mask;
+         GPIO_OE_SET := SDA_Mask;
       end if;
-
-      T := T + SDA_Hold;
-      Timer.Delay_Until (T);
    end Set_SDA;
 
    procedure Set_SCL
       (High : Boolean)
    is
    begin
-      T := Clock;
-
       if High then
-         SIO_Periph.GPIO_OE_CLR.GPIO_OE_CLR := SCL_Mask;
+         GPIO_OE_CLR := SCL_Mask;
       else
-         SIO_Periph.GPIO_OE_SET.GPIO_OE_SET := SCL_Mask;
+         GPIO_OE_SET := SCL_Mask;
       end if;
-
-      T := T + SCL_Hold;
-      Timer.Delay_Until (T);
+      RP.Timer.Busy_Wait_Until (RP.Timer.Clock + SCL_Hold);
    end Set_SCL;
 
    procedure Get_SDA
       (High : out Boolean)
    is
    begin
-      High := (SIO_Periph.GPIO_IN.GPIO_IN and SDA_Mask) /= 0;
+      High := (GPIO_IN and SDA_Mask) /= 0;
    end Get_SDA;
 
    procedure Get_SCL
       (High : out Boolean)
    is
    begin
-      High := (SIO_Periph.GPIO_IN.GPIO_IN and SCL_Mask) /= 0;
+      High := (GPIO_IN and SCL_Mask) /= 0;
    end Get_SCL;
 
 end Soft_I2C_RP2040;
