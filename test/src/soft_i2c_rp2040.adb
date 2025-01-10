@@ -8,15 +8,17 @@ with RP2040_SVD.RESETS; use RP2040_SVD.RESETS;
 with RP2040_SVD.SIO; use RP2040_SVD.SIO;
 with RP2040_SVD.PADS_BANK0; use RP2040_SVD.PADS_BANK0;
 with RP2040_SVD.IO_BANK0; use RP2040_SVD.IO_BANK0;
+with RP.Timer; use RP.Timer;
 with HAL; use HAL;
 with System;
 
 package body Soft_I2C_RP2040 is
-   --  SDA_Pin  : constant := 0;
-   --  SCL_Pin  : constant := 1;
-   SDA_Mask : constant UInt32 := 2#01#;
-   SCL_Mask : constant UInt32 := 2#10#;
+   SDA_Pin  : constant := 0;
+   SCL_Pin  : constant := 1;
+   SDA_Mask : constant UInt32 := Shift_Left (1, SDA_Pin);
+   SCL_Mask : constant UInt32 := Shift_Left (1, SCL_Pin);
 
+   --  Skip the SVD record types for timing critical registers
    SIO_BASE : constant := 16#D000_0000#;
    GPIO_IN : UInt32
       with Import, Volatile_Full_Access, Address => System'To_Address (SIO_BASE + 16#004#);
@@ -47,8 +49,6 @@ package body Soft_I2C_RP2040 is
 
       GPIO_OE_CLR := SDA_Mask or SCL_Mask;
       SIO_Periph.GPIO_OUT_CLR.GPIO_OUT_CLR := UInt30 (SDA_Mask or SCL_Mask);
-
-      Timer.Enable;
    end Initialize;
 
    --  Timing in Microseconds
