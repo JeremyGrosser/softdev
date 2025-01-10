@@ -59,6 +59,7 @@ package body Soft_I2C_RP2040 is
    --
    --  Without delays, we can do about 1.6 MHz I2C here. More than fast enough.
    SCL_Hold : constant := 5;
+   SDA_Hold : constant := 1;
 
    procedure Set_SDA
       (High : Boolean)
@@ -69,6 +70,7 @@ package body Soft_I2C_RP2040 is
       else
          GPIO_OE_SET := SDA_Mask;
       end if;
+      RP.Timer.Busy_Wait_Until (RP.Timer.Clock + SDA_Hold);
    end Set_SDA;
 
    procedure Set_SCL
@@ -87,6 +89,7 @@ package body Soft_I2C_RP2040 is
       (High : out Boolean)
    is
    begin
+      --  RP.Timer.Busy_Wait_Until (RP.Timer.Clock + SDA_Hold);
       High := (GPIO_IN and SDA_Mask) /= 0;
    end Get_SDA;
 
