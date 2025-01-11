@@ -4,84 +4,152 @@
 --  SPDX-License-Identifier: BSD-3-Clause
 --
 package body Soft_I2C_Slave is
+   type State_Type is
+      (Idle,            --  Waiting for start condition
+       Start,           --  Start condition detected
+       Receive_Address, --  Receiving address bits
+       Ack_Address,     --  Acknowledging address
+       Read_Data,       --  Master reading from slave
+       Write_Data,      --  Master writing to slave
+       Ack_Data);       --  Acknowledging data byte
 
-   type Bus_State is (Idle, Start_Condition, Address_Match_Write, Address_Match_Read, Address_Miss, Stop_Condition);
-   State : Bus_State := Idle;
+   Current_State  : State_Type := Idle;
+   Bit_Count      : Natural := 0;
+   Data_Reg       : UInt8 := 0;
+   Is_Read        : Boolean := False;
+   NACK           : Boolean := False;
 
-   In_Data, Out_Data   : UInt8 := 0;
-   In_Count, Out_Count : Natural := 0;
+   Last_SCL : Logic_Level := Low;
+   Last_SDA : Logic_Level := Low;
 
    procedure Initialize is
    begin
-      null;
+      Current_State := Idle;
+      Bit_Count := 0;
+      Data_Reg := 0;
+      Is_Read := False;
+      NACK := False;
+      Last_SCL := Low;
+      Last_SDA := Low;
    end Initialize;
 
-   procedure Shift_In
-      (SDA_High : Boolean)
-   is
-   begin
-      In_Data := Shift_Left (In_Data, 1);
-      if SDA_High then
-         In_Data := In_Data or 1;
-      end if;
-      In_Count := In_Count + 1;
-   end Shift_In;
-
-   procedure Shift_Out is
-   begin
-      Set_SDA ((Out_Data and 16#80#) /= 0);
-      Out_Data := Shift_Right (Out_Data, 1);
-      Out_Count := Out_Count + 1;
-   end Shift_Out;
-
    procedure SCL_Rising
-      (SDA_High : Boolean)
+      (SDA : Logic_Level)
    is
-      Write_Address : constant UInt8 := Shift_Left (UInt8 (Address), 1);
-      Read_Address  : constant UInt8 := Write_Address or 1;
    begin
-      case State is
-         when Idle =>
-            if SDA_High = False then
-               State := Start_Condition;
+      case Current_State is
+         when Start =>
+            Current_State := Receive_Address;
+            Bit_Count := 0;
+            Data_Reg := 0;
+         when Receive_Address =>
+            Data_Reg := Shift_Left (Data_Reg, 1);
+            if SDA = High then
+               Data_Reg := Data_Reg or 1;
             end if;
-         when Start_Condition =>
-            Shift_In (SDA_High);
-            if In_Count = 8 then
-               if In_Data = Write_Address then
-                  State := Address_Match_Write;
-               elsif In_Data = Read_Address then
-                  State := Address_Match_Read;
+
+            Bit_Count := Bit_Count + 1;
+            if Bit_Count = 8 then
+               Is_Read := (Data_Reg and 1) = 1;
+               if UInt7 (Shift_Right (Data_Reg, 1) and 16#7F#) = Address then
+                  Current_State := Ack_Address;
                else
-                  State := Address_Miss;
+                  Current_State := Idle;
                end if;
-               In_Count := 0;
             end if;
-         when Address_Match_Write =>
-            Shift_In (SDA_High);
-            if In_Count = 8 then
-               Write (In_Data);
-               In_Count := 0;
+         when Write_Data =>
+            Data_Reg := Shift_Left (Data_Reg, 1);
+            if SDA = High then
+               Data_Reg := Data_Reg or 1;
             end if;
-         when Address_Match_Read =>
-            if Out_Count = 0 then
-               Read (Out_Data);
+
+            Bit_Count := Bit_Count + 1;
+            if Bit_Count = 8 then
+               Current_State := Ack_Data;
+               Write (Data_Reg);
             end if;
-            Shift_Out;
-            if Out_Count = 8 then
-               Out_Count := 0;
+         when Read_Data =>
+            --  Next bit should already be on SDA line
+            Bit_Count := Bit_Count + 1;
+            if Bit_Count = 8 then
+               Current_State := Ack_Data;
             end if;
-         when Address_Miss =>
-            In_Count := In_Count + 1;
-            if In_Count = 8 and then not SDA_High then
-               State := Stop_Condition;
-            end if;
-            In_Count := 0;
-         when Stop_Condition =>
-            if SDA_High then
-               State := Idle;
-            end if;
+         when others =>
+            null;
       end case;
    end SCL_Rising;
+
+   procedure SCL_Falling
+      (SDA : Logic_Level)
+   is
+   begin
+      case Current_State is
+         when Ack_Address =>
+            --  Pull SDA low to acknowledge
+            Set_SDA (False);
+            if Is_Read then
+               Current_State := Read_Data;
+               Bit_Count := 0;
+               Read (Data_Reg, NACK);
+               --  Put first bit on line
+               Set_SDA ((Data_Reg and 16#80#) /= 0);
+            else
+               Current_State := Write_Data;
+               Bit_Count := 0;
+            end if;
+         when Ack_Data =>
+            if Is_Read then
+               --  Check if master acknowledged
+               if SDA = Low then
+                  if NACK then
+                     Current_State := Idle;
+                  else
+                     --  More data requested
+                     Current_State := Read_Data;
+                     Bit_Count := 0;
+                     Read (Data_Reg, NACK);
+                     --  Put first bit on line
+                     Set_SDA ((Data_Reg and 16#80#) /= 0);
+                  end if;
+               else
+                  Current_State := Idle;
+               end if;
+            else
+               --  Acknowledge received data
+               Set_SDA (False);
+               Current_State := Write_Data;
+               Bit_Count := 0;
+            end if;
+         when Read_Data =>
+            if Bit_Count < 8 then
+               --  Put next bit on line
+               Set_SDA ((Shift_Left (Data_Reg, Bit_Count) and 16#80#) /= 0);
+            end if;
+         when others =>
+            null;
+      end case;
+   end SCL_Falling;
+
+   procedure Interrupt
+      (SCL, SDA : Logic_Level)
+   is
+   begin
+      if SCL = High and then Last_SDA = High and then SDA = Low then
+         --  Start
+         Current_State := Start;
+         Bit_Count := 0;
+         Data_Reg := 0;
+      elsif SCL = High and then Last_SDA = Low and then SDA = High then
+         --  Stop
+         Current_State := Idle;
+      elsif Last_SCL = Low and then SCL = High then
+         SCL_Rising (SDA);
+      elsif Last_SCL = High and then SCL = Low then
+         SCL_Falling (SDA);
+      end if;
+
+      Last_SCL := SCL;
+      Last_SDA := SDA;
+   end Interrupt;
 
 end Soft_I2C_Slave;
