@@ -136,6 +136,7 @@ package body Soft_I2C_Slave is
    begin
       if SCL = High and then Last_SDA = High and then SDA = Low then
          --  Start
+         Set_SDA (True); --  Release SDA in case this is a repeated start
          Current_State := Start;
          Bit_Count := 0;
          Data_Reg := 0;
