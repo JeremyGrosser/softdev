@@ -21,10 +21,8 @@ package Soft_I2C_Slave is
 
    procedure Initialize;
 
-   type Logic_Level is (High, Low);
-
    procedure Interrupt
-      (SCL, SDA : Logic_Level);
+      (SCL, SDA : Boolean);
    --  Called for the Rising and Falling edges of SDA and SCL.
 
 end Soft_I2C_Slave;

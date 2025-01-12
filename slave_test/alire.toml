@@ -1,0 +1,21 @@
+name = "slave_test"
+description = ""
+version = "0.1.0-dev"
+
+authors = ["Jeremy Grosser"]
+maintainers = ["Jeremy Grosser <jeremy@synack.me>"]
+maintainers-logins = ["JeremyGrosser"]
+licenses = "BSD-3-Clause"
+website = ""
+tags = []
+
+executables = ["slave_test"]
+
+[[depends-on]]
+softdev = "*"
+
+[[pins]]
+softdev = { path='..' }
+
+[[depends-on]]
+hex_format = "~0.1.0"

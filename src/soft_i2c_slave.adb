@@ -19,8 +19,8 @@ package body Soft_I2C_Slave is
    Is_Read        : Boolean := False;
    NACK           : Boolean := False;
 
-   Last_SCL : Logic_Level := Low;
-   Last_SDA : Logic_Level := Low;
+   Last_SCL : Boolean := False;
+   Last_SDA : Boolean := False;
 
    procedure Initialize is
    begin
@@ -29,12 +29,12 @@ package body Soft_I2C_Slave is
       Data_Reg := 0;
       Is_Read := False;
       NACK := False;
-      Last_SCL := Low;
-      Last_SDA := Low;
+      Last_SCL := False;
+      Last_SDA := False;
    end Initialize;
 
    procedure SCL_Rising
-      (SDA : Logic_Level)
+      (SDA : Boolean)
    is
    begin
       case Current_State is
@@ -44,7 +44,7 @@ package body Soft_I2C_Slave is
             Data_Reg := 0;
          when Receive_Address =>
             Data_Reg := Shift_Left (Data_Reg, 1);
-            if SDA = High then
+            if SDA then
                Data_Reg := Data_Reg or 1;
             end if;
 
@@ -59,7 +59,7 @@ package body Soft_I2C_Slave is
             end if;
          when Write_Data =>
             Data_Reg := Shift_Left (Data_Reg, 1);
-            if SDA = High then
+            if SDA then
                Data_Reg := Data_Reg or 1;
             end if;
 
@@ -80,7 +80,7 @@ package body Soft_I2C_Slave is
    end SCL_Rising;
 
    procedure SCL_Falling
-      (SDA : Logic_Level)
+      (SDA : Boolean)
    is
    begin
       case Current_State is
@@ -100,7 +100,7 @@ package body Soft_I2C_Slave is
          when Ack_Data =>
             if Is_Read then
                --  Check if master acknowledged
-               if SDA = Low then
+               if not SDA then
                   if NACK then
                      Current_State := Idle;
                   else
@@ -131,21 +131,21 @@ package body Soft_I2C_Slave is
    end SCL_Falling;
 
    procedure Interrupt
-      (SCL, SDA : Logic_Level)
+      (SCL, SDA : Boolean)
    is
    begin
-      if SCL = High and then Last_SDA = High and then SDA = Low then
+      if SCL and then Last_SDA and then not SDA then
          --  Start
          Set_SDA (True); --  Release SDA in case this is a repeated start
          Current_State := Start;
          Bit_Count := 0;
          Data_Reg := 0;
-      elsif SCL = High and then Last_SDA = Low and then SDA = High then
+      elsif SCL and then not Last_SDA and then SDA then
          --  Stop
          Current_State := Idle;
-      elsif Last_SCL = Low and then SCL = High then
+      elsif not Last_SCL and then SCL then
          SCL_Rising (SDA);
-      elsif Last_SCL = High and then SCL = Low then
+      elsif Last_SCL and then not SCL then
          SCL_Falling (SDA);
       end if;
 

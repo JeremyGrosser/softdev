@@ -17,7 +17,7 @@ generic
    --  Never use internal pull-up resistors.
 
    Clock_Stretch_Enabled : Boolean := False;
-package Soft_I2C is
+package Soft_I2C_Master is
 
    subtype I2C_Address is HAL.UInt7;
 
@@ -36,4 +36,4 @@ package Soft_I2C is
    --  Status
    NACK : Boolean := False;
 
-end Soft_I2C;
+end Soft_I2C_Master;
