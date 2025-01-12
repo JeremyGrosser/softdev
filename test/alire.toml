@@ -21,3 +21,6 @@ softdev = { path='..' }
 
 [build-switches]
 release.optimization = ["-gnatn2", "-gnatp", "-Os"]
+
+[build-profiles]
+"*" = "development"
