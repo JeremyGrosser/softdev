@@ -15,8 +15,9 @@ procedure Slave_Test is
       SDA, SCL : Boolean := True;
    end record;
 
-   Bus, Last_Bus : Signals;
-   Counter : UInt8 := 0;
+   Last_Bus : Signals := (SDA => False, SCL => False);
+   Bus      : Signals := (SDA => True, SCL => True);
+   Counter  : UInt8 := 0;
 
    procedure Interrupt;
 
@@ -104,6 +105,8 @@ procedure Slave_Test is
          Append (SDA_States, Bus.SDA);
          Append (SCL_States, Bus.SCL);
          Slave.Interrupt (SCL => Bus.SCL, SDA => Bus.SDA);
+         Append (SDA_States, Bus.SDA);
+         Append (SCL_States, Bus.SCL);
       end if;
       Last_Bus := Bus;
    end Interrupt;
@@ -111,10 +114,16 @@ begin
    Master.Initialize;
    Slave.Initialize;
    Slave.Address := 16#51#;
+   Interrupt;
+
    Master.Write
       (Addr => Slave.Address,
        Data => UInt8_Array'(1 => 16#42#),
        Stop => True);
+
+   for I in 1 .. 100 loop
+      Interrupt;
+   end loop;
 
    Put ("SDA=");
    for State of SDA_States loop

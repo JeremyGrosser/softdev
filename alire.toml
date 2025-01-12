@@ -11,3 +11,6 @@ tags = []
 
 [[depends-on]]
 hal = "^1.0.0"
+
+[[depends-on]]
+hex_format = "~0.1.0"

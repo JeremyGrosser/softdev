@@ -3,7 +3,13 @@
 --
 --  SPDX-License-Identifier: BSD-3-Clause
 --
+with Ada.Text_IO; use Ada.Text_IO;
+with Generic_Hex_Format;
+
 package body Soft_I2C_Slave is
+   package Hex_Format_8 is new Generic_Hex_Format (UInt8, Shift_Right);
+   use Hex_Format_8;
+
    type State_Type is
       (Idle,            --  Waiting for start condition
        Start,           --  Start condition detected
@@ -19,8 +25,8 @@ package body Soft_I2C_Slave is
    Is_Read        : Boolean := False;
    NACK           : Boolean := False;
 
-   Last_SCL : Boolean := False;
-   Last_SDA : Boolean := False;
+   Last_SCL : Boolean := True;
+   Last_SDA : Boolean := True;
 
    procedure Initialize is
    begin
@@ -29,8 +35,8 @@ package body Soft_I2C_Slave is
       Data_Reg := 0;
       Is_Read := False;
       NACK := False;
-      Last_SCL := False;
-      Last_SDA := False;
+      Last_SCL := True;
+      Last_SDA := True;
    end Initialize;
 
    procedure SCL_Rising
@@ -42,6 +48,20 @@ package body Soft_I2C_Slave is
             Current_State := Receive_Address;
             Bit_Count := 0;
             Data_Reg := 0;
+         when Ack_Data =>
+            if not Is_Read then
+               Write (Data_Reg);
+            end if;
+         when others =>
+            null;
+      end case;
+   end SCL_Rising;
+
+   procedure SCL_Falling
+      (SDA : Boolean)
+   is
+   begin
+      case Current_State is
          when Receive_Address =>
             Data_Reg := Shift_Left (Data_Reg, 1);
             if SDA then
@@ -50,12 +70,25 @@ package body Soft_I2C_Slave is
 
             Bit_Count := Bit_Count + 1;
             if Bit_Count = 8 then
-               Is_Read := (Data_Reg and 1) = 1;
-               if UInt7 (Shift_Right (Data_Reg, 1) and 16#7F#) = Address then
+               Is_Read := (Data_Reg and 1) /= 0;
+               if UInt7 (Shift_Right (Data_Reg, 1)) = Address then
                   Current_State := Ack_Address;
                else
                   Current_State := Idle;
                end if;
+            end if;
+         when Ack_Address =>
+            --  Pull SDA low to acknowledge
+            Set_SDA (False);
+            if Is_Read then
+               Current_State := Read_Data;
+               Bit_Count := 0;
+               Read (Data_Reg, NACK);
+               --  Put first bit on line
+               Set_SDA ((Data_Reg and 16#80#) /= 0);
+            else
+               Current_State := Write_Data;
+               Bit_Count := 0;
             end if;
          when Write_Data =>
             Data_Reg := Shift_Left (Data_Reg, 1);
@@ -70,33 +103,12 @@ package body Soft_I2C_Slave is
             end if;
          when Read_Data =>
             --  Next bit should already be on SDA line
-            Bit_Count := Bit_Count + 1;
             if Bit_Count = 8 then
                Current_State := Ack_Data;
-            end if;
-         when others =>
-            null;
-      end case;
-   end SCL_Rising;
-
-   procedure SCL_Falling
-      (SDA : Boolean)
-   is
-   begin
-      case Current_State is
-         when Ack_Address =>
-            --  Pull SDA low to acknowledge
-            Set_SDA (False);
-            if Is_Read then
-               Current_State := Read_Data;
-               Bit_Count := 0;
-               Read (Data_Reg, NACK);
-               --  Put first bit on line
-               Set_SDA ((Data_Reg and 16#80#) /= 0);
             else
-               Current_State := Write_Data;
-               Bit_Count := 0;
+               Set_SDA ((Shift_Left (Data_Reg, Bit_Count) and 16#80#) /= 0);
             end if;
+            Bit_Count := Bit_Count + 1;
          when Ack_Data =>
             if Is_Read then
                --  Check if master acknowledged
@@ -119,11 +131,7 @@ package body Soft_I2C_Slave is
                Set_SDA (False);
                Current_State := Write_Data;
                Bit_Count := 0;
-            end if;
-         when Read_Data =>
-            if Bit_Count < 8 then
-               --  Put next bit on line
-               Set_SDA ((Shift_Left (Data_Reg, Bit_Count) and 16#80#) /= 0);
+               Data_Reg := 0;
             end if;
          when others =>
             null;
@@ -134,6 +142,7 @@ package body Soft_I2C_Slave is
       (SCL, SDA : Boolean)
    is
    begin
+      Put_Line ("State=" & Current_State'Image & " SCL=" & SCL'Image & " SDA=" & SDA'Image & " Last_SCL=" & Last_SCL'Image & " Last_SDA=" & Last_SDA'Image);
       if SCL and then Last_SDA and then not SDA then
          --  Start
          Set_SDA (True); --  Release SDA in case this is a repeated start
