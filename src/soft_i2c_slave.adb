@@ -3,6 +3,8 @@
 --
 --  SPDX-License-Identifier: BSD-3-Clause
 --
+with Ada.Text_IO; use Ada.Text_IO;
+
 package body Soft_I2C_Slave is
    type State_Type is
       (Idle,            --  Waiting for start condition
@@ -37,6 +39,7 @@ package body Soft_I2C_Slave is
       (SDA : Boolean)
    is
    begin
+      Put_Line ("SCL Rising, SDA=" & SDA'Image & " State=" & Current_State'Image);
       case Current_State is
          when Start =>
             Current_State := Receive_Address;
@@ -47,6 +50,10 @@ package body Soft_I2C_Slave is
                Write (Data_Reg);
             end if;
          when Write_Data =>
+            if Bit_Count = 0 then
+               Set_SDA (True);
+            end if;
+
             Data_Reg := Shift_Left (Data_Reg, 1);
             if SDA then
                Data_Reg := Data_Reg or 1;
@@ -79,6 +86,7 @@ package body Soft_I2C_Slave is
       (SDA : Boolean)
    is
    begin
+      Put_Line ("SCL Falling, SDA=" & SDA'Image & " State=" & Current_State'Image);
       case Current_State is
          when Receive_Address =>
             Data_Reg := Shift_Left (Data_Reg, 1);
@@ -141,13 +149,14 @@ package body Soft_I2C_Slave is
    begin
       if SCL and then Last_SDA and then not SDA then
          --  Start
-         --  Set_SDA (True); --  Release SDA in case this is a repeated start
+         Set_SDA (True); --  Release SDA in case this is a repeated start
          Current_State := Start;
          Bit_Count := 0;
          Data_Reg := 0;
       elsif SCL and then not Last_SDA and then SDA then
          --  Stop
          Current_State := Idle;
+         Set_SDA (True);
       elsif not Last_SCL and then SCL then
          SCL_Rising (SDA);
       elsif Last_SCL and then not SCL then

@@ -15,16 +15,14 @@ procedure Test is
    package Hex_Format_8 is new Generic_Hex_Format (UInt8, Shift_Right);
    use Hex_Format_8;
 
-   --  CAT24C32F
-   NOR_Addr : constant Port.I2C_Address := 2#1010_000#;
-   Page     : UInt8_Array (1 .. 2) := (16#00#, 16#00#);
-   Data     : UInt8_Array (1 .. 4);
-   Counter  : UInt8 := 16#55#;
-begin
-   RP.Clock.Initialize (12_000_000);
-   Soft_I2C_RP2040.Initialize;
+   Counter : UInt8 := 16#55#;
 
-   loop
+   procedure Test_EEPROM is
+      --  CAT24C32F
+      NOR_Addr : constant Port.I2C_Address := 2#1010_000#;
+      Page     : constant UInt8_Array (1 .. 2) := (16#00#, 16#00#);
+      Data     : UInt8_Array (1 .. 4);
+   begin
       Put_Line ("Addr 0x" & Hex (Page (1)) & Hex (Page (2)));
       Put ("EEPROM Write:");
       for I in Data'Range loop
@@ -52,7 +50,24 @@ begin
       end loop;
       New_Line;
       Put_Line ("-------------------------");
+   end Test_EEPROM;
 
-      Page (2) := Page (2) + UInt8 (Data'Length);
+   procedure Test_Slave is
+      Addr : constant UInt7 := 16#19#;
+      Data : constant UInt8_Array (1 .. 1) := (1 => Counter);
+   begin
+      Slave_Data := 0;
+      Port.Write (Addr, Data, Stop => True);
+      Ada.Text_IO.Put_Line ("Slave_Data (expect " & Hex (Counter) & ") = 0x" & Hex (Slave_Data));
+      Counter := Counter + 1;
+   end Test_Slave;
+
+begin
+   RP.Clock.Initialize (12_000_000);
+   Soft_I2C_RP2040.Initialize;
+
+   loop
+      --  Test_EEPROM;
+      Test_Slave;
    end loop;
 end Test;

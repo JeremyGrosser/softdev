@@ -30,6 +30,8 @@ package Soft_I2C_RP2040 is
        Get_SCL => Get_SCL,
        Clock_Stretch_Enabled => True);
 
+   Slave_Data : UInt8 := 0;
+
    procedure Slave_Set_SDA
       (High : Boolean);
 

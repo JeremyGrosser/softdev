@@ -127,8 +127,6 @@ package body Soft_I2C_RP2040 is
       High := (GPIO_IN and SCL_Mask) /= 0;
    end Get_SCL;
 
-   Slave_Data : UInt8 := 0;
-
    procedure Slave_Write
       (Data : UInt8)
    is
