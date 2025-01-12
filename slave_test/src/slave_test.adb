@@ -120,6 +120,7 @@ begin
       (Addr => Slave.Address,
        Data => UInt8_Array'(1 => 16#42#),
        Stop => True);
+   Put_Line ("Master Write NACK=" & Master.NACK'Image);
 
    for I in 1 .. 100 loop
       Interrupt;

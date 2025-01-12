@@ -52,6 +52,30 @@ package body Soft_I2C_Slave is
             if not Is_Read then
                Write (Data_Reg);
             end if;
+         when Write_Data =>
+            Data_Reg := Shift_Left (Data_Reg, 1);
+            if SDA then
+               Data_Reg := Data_Reg or 1;
+            end if;
+
+            Bit_Count := Bit_Count + 1;
+            if Bit_Count = 8 then
+               Current_State := Ack_Data;
+               Write (Data_Reg);
+            end if;
+         when Ack_Address =>
+            Set_SDA (False);
+            Current_State := Write_Data;
+            if Is_Read then
+               Current_State := Read_Data;
+               Bit_Count := 0;
+               Read (Data_Reg, NACK);
+               --  Put first bit on line
+               --  Set_SDA ((Data_Reg and 16#80#) /= 0);
+            else
+               Current_State := Write_Data;
+               Bit_Count := 0;
+            end if;
          when others =>
             null;
       end case;
@@ -73,34 +97,13 @@ package body Soft_I2C_Slave is
                Is_Read := (Data_Reg and 1) /= 0;
                if UInt7 (Shift_Right (Data_Reg, 1)) = Address then
                   Current_State := Ack_Address;
+                  Set_SDA (False);
                else
                   Current_State := Idle;
                end if;
             end if;
          when Ack_Address =>
-            --  Pull SDA low to acknowledge
             Set_SDA (False);
-            if Is_Read then
-               Current_State := Read_Data;
-               Bit_Count := 0;
-               Read (Data_Reg, NACK);
-               --  Put first bit on line
-               Set_SDA ((Data_Reg and 16#80#) /= 0);
-            else
-               Current_State := Write_Data;
-               Bit_Count := 0;
-            end if;
-         when Write_Data =>
-            Data_Reg := Shift_Left (Data_Reg, 1);
-            if SDA then
-               Data_Reg := Data_Reg or 1;
-            end if;
-
-            Bit_Count := Bit_Count + 1;
-            if Bit_Count = 8 then
-               Current_State := Ack_Data;
-               Write (Data_Reg);
-            end if;
          when Read_Data =>
             --  Next bit should already be on SDA line
             if Bit_Count = 8 then
@@ -142,19 +145,22 @@ package body Soft_I2C_Slave is
       (SCL, SDA : Boolean)
    is
    begin
-      Put_Line ("State=" & Current_State'Image & " SCL=" & SCL'Image & " SDA=" & SDA'Image & " Last_SCL=" & Last_SCL'Image & " Last_SDA=" & Last_SDA'Image);
       if SCL and then Last_SDA and then not SDA then
+         Put_Line ("State=" & Current_State'Image & " Start");
          --  Start
          Set_SDA (True); --  Release SDA in case this is a repeated start
          Current_State := Start;
          Bit_Count := 0;
          Data_Reg := 0;
       elsif SCL and then not Last_SDA and then SDA then
+         Put_Line ("State=" & Current_State'Image & " Stop");
          --  Stop
          Current_State := Idle;
       elsif not Last_SCL and then SCL then
+         Put_Line ("State=" & Current_State'Image & " SCL_Rising");
          SCL_Rising (SDA);
       elsif Last_SCL and then not SCL then
+         Put_Line ("State=" & Current_State'Image & " SCL_Falling");
          SCL_Falling (SDA);
       end if;
 
