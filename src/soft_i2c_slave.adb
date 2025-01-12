@@ -3,13 +3,7 @@
 --
 --  SPDX-License-Identifier: BSD-3-Clause
 --
-with Ada.Text_IO; use Ada.Text_IO;
-with Generic_Hex_Format;
-
 package body Soft_I2C_Slave is
-   package Hex_Format_8 is new Generic_Hex_Format (UInt8, Shift_Right);
-   use Hex_Format_8;
-
    type State_Type is
       (Idle,            --  Waiting for start condition
        Start,           --  Start condition detected
@@ -146,21 +140,17 @@ package body Soft_I2C_Slave is
    is
    begin
       if SCL and then Last_SDA and then not SDA then
-         Put_Line ("State=" & Current_State'Image & " Start");
          --  Start
          Set_SDA (True); --  Release SDA in case this is a repeated start
          Current_State := Start;
          Bit_Count := 0;
          Data_Reg := 0;
       elsif SCL and then not Last_SDA and then SDA then
-         Put_Line ("State=" & Current_State'Image & " Stop");
          --  Stop
          Current_State := Idle;
       elsif not Last_SCL and then SCL then
-         Put_Line ("State=" & Current_State'Image & " SCL_Rising");
          SCL_Rising (SDA);
       elsif Last_SCL and then not SCL then
-         Put_Line ("State=" & Current_State'Image & " SCL_Falling");
          SCL_Falling (SDA);
       end if;
 
