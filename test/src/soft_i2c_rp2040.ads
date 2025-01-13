@@ -3,7 +3,7 @@
 --
 --  SPDX-License-Identifier: BSD-3-Clause
 --
-with Soft_I2C;
+with Softdev.I2C_Master;
 
 package Soft_I2C_RP2040 is
 
@@ -21,7 +21,7 @@ package Soft_I2C_RP2040 is
    procedure Get_SCL
       (High : out Boolean);
 
-   package Port is new Soft_I2C
+   package Port is new Softdev.I2C_Master
       (Set_SDA => Set_SDA,
        Set_SCL => Set_SCL,
        Get_SDA => Get_SDA,

@@ -3,7 +3,7 @@
 --
 --  SPDX-License-Identifier: BSD-3-Clause
 --
-package body Soft_I2C is
+package body Softdev.I2C_Master is
 
    procedure Release_Bus is
    begin
@@ -159,4 +159,4 @@ package body Soft_I2C is
       end if;
    end Read;
 
-end Soft_I2C;
+end Softdev.I2C_Master;
