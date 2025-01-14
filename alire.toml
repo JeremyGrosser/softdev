@@ -1,13 +1,13 @@
 name = "softdev"
-description = "I2C implemented in software"
-version = "0.1.0-dev"
+description = "Serial protocols implemented in software"
+version = "1.0.0"
 
 authors = ["Jeremy Grosser"]
 maintainers = ["Jeremy Grosser <jeremy@synack.me>"]
 maintainers-logins = ["JeremyGrosser"]
 licenses = "BSD-3-Clause"
-website = ""
-tags = []
+website = "https://github.com/JeremyGrosser/softdev"
+tags = ["embedded", "i2c"]
 
 [[depends-on]]
-hal = "^1.0.0"
+hal = "^1"

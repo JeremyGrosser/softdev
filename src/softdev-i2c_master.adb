@@ -30,7 +30,7 @@ package body Softdev.I2C_Master is
       Set_SCL (True);
       if Clock_Stretch_Enabled then
          loop
-            --  If the target doesn't release SCL after a while, try forcing it.
+            --  If the target doesn't release SCL after a while, toggle
             for I in 1 .. 1000 loop
                Get_SCL (CLK);
                if CLK then
@@ -64,7 +64,7 @@ package body Softdev.I2C_Master is
    is
       D : UInt8 := Data;
    begin
-      for I in 1 .. 8 loop
+      for I in 0 .. 7 loop
          Set_SDA ((D and 16#80#) /= 0);
          Clock;
          D := Shift_Left (D, 1);
