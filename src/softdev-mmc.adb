@@ -7,7 +7,7 @@ with Ada.Unchecked_Conversion;
 
 package body Softdev.MMC is
 
-   Error       : Integer := -1;
+   Error       : Integer := Integer'Last;
    SDHC        : Boolean := False;
    Speed_KHz   : Natural := 400;
 
@@ -281,10 +281,10 @@ package body Softdev.MMC is
          return;
       end if;
 
-      SEND_CSD;
-      if Has_Error then
-         return;
-      end if;
+      --  SEND_CSD;
+      --  if Has_Error then
+      --     return;
+      --  end if;
    end Initialize;
 
    procedure Wait_For_Idle is

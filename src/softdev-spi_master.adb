@@ -8,8 +8,8 @@ package body Softdev.SPI_Master is
          Bit := (Data and 16#80#) /= 0;
          Set_MOSI (Bit);
          Set_SCK (True);
-         Set_SCK (False);
          Get_MISO (Bit);
+         Set_SCK (False);
          Data := Shift_Left (Data, 1);
          if Bit then
             Data := Data or 1;
