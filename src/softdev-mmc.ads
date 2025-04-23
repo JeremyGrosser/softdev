@@ -1,5 +1,5 @@
 --
---  Copyright (C) 2024 Jeremy Grosser <jeremy@synack.me>
+--  Copyright (C) 2024-2025 Jeremy Grosser <jeremy@synack.me>
 --
 --  SPDX-License-Identifier: BSD-3-Clause
 --
@@ -28,12 +28,13 @@
 --  CS, MOSI, MISO, and CLK should all have pullup resistors of approximately
 --  10k ohm. Most cards will have weak 50k resistors internally.
 --
+--  The SPI bus speed should be less than 400 KHz during Initialize. After
+--  Initialize, the bus speed may be increased. The maximum speed depends on
+--  the card. This driver does not support card speed detection. 10 MHz is
+--  usually safe.
+--
 --  If Has_Error returns True, the only way to reset it is to Initialize again.
 --  The card might still work after an error, but I wouldn't count on it.
---
---  Call Max_Bus_Speed_KHz to get the SPI clock frequency. Prior to
---  Initialize, this is set to 400 KHz. After initialization, it may return up
---  to 50 MHz depending on what the card reports.
 --
 --  Read and Write only support single block operations. Blocks are always 512
 --  bytes.
@@ -50,9 +51,6 @@ package Softdev.MMC is
    subtype Block_Data is UInt8_Array (1 .. 512);
 
    procedure Initialize;
-
-   function Max_Bus_Speed_KHz
-      return Natural;
 
    function Has_Error
       return Boolean;

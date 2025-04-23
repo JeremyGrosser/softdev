@@ -1,23 +1,17 @@
 --
---  Copyright (C) 2024 Jeremy Grosser <jeremy@synack.me>
+--  Copyright (C) 2024-2025 Jeremy Grosser <jeremy@synack.me>
 --
 --  SPDX-License-Identifier: BSD-3-Clause
 --
-with Ada.Unchecked_Conversion;
 
 package body Softdev.MMC is
 
-   Error       : Integer := Integer'Last;
-   SDHC        : Boolean := False;
-   Speed_KHz   : Natural := 400;
+   Error : Integer := Integer'Last;
+   SDHC  : Boolean := False;
 
    function Has_Error
       return Boolean
    is (Error >= 0);
-
-   function Max_Bus_Speed_KHz
-      return Natural
-   is (Speed_KHz);
 
    procedure SPI_Read
       (Data : out UInt8)
@@ -192,69 +186,9 @@ package body Softdev.MMC is
       Set_CS (True);
    end READ_OCR;
 
-   procedure SEND_CSD is
-      type CSD_Register is record
-         TRAN_SPEED_UNIT   : UInt3;
-         TRAN_SPEED_TIME   : UInt4;
-      end record
-         with Size => 128;
-      for CSD_Register use record
-         TRAN_SPEED_UNIT   at 0 range 96 .. 98;
-         TRAN_SPEED_TIME   at 0 range 99 .. 103;
-      end record;
-
-      subtype CSD_Bytes is UInt8_Array (1 .. CSD_Register'Size / 8);
-      function To_CSD_Register is new Ada.Unchecked_Conversion
-         (UInt8_Array, CSD_Register);
-
-      --  Table 5-6: Maximum Data Transfer Rate Definition
-      TS_MUL : constant array (UInt4) of Natural :=
-         (0 => 0_4,
-          1 => 1_0,
-          2 => 1_2,
-          3 => 1_3,
-          4 => 1_5,
-          5 => 2_0,
-          6 => 2_5,
-          7 => 3_0,
-          8 => 3_5,
-          9 => 4_0,
-          10 => 4_5,
-          11 => 5_0,
-          12 => 5_5,
-          13 => 6_0,
-          14 => 7_0,
-          15 => 8_0);
-
-      CSD_Data : CSD_Bytes;
-      CSD : CSD_Register;
-
-      R1 : UInt8;
-   begin
-      Set_CS (False);
-      Send_Command (9, 0, 16#55#, R1);
-      if R1 /= 0 then
-         Error := 9;
-      else
-         Sync (16#FE#);
-         for I in reverse CSD_Data'Range loop
-            SPI_Read (CSD_Data (I));
-         end loop;
-         CSD := To_CSD_Register (CSD_Data);
-
-         Speed_KHz := 1;
-         for I in 0 .. CSD.TRAN_SPEED_UNIT loop
-            Speed_KHz := Speed_KHz * 10;
-         end loop;
-         Speed_KHz := Speed_KHz * TS_MUL (CSD.TRAN_SPEED_TIME);
-      end if;
-      Set_CS (True);
-   end SEND_CSD;
-
    procedure Initialize is
    begin
       Error := -1;
-      Speed_KHz := 400;
 
       GO_IDLE;
       if Has_Error then
@@ -280,11 +214,6 @@ package body Softdev.MMC is
       if Has_Error then
          return;
       end if;
-
-      --  SEND_CSD;
-      --  if Has_Error then
-      --     return;
-      --  end if;
    end Initialize;
 
    procedure Wait_For_Idle is
