@@ -1,0 +1,31 @@
+with "config/uart_echo_rp2040_config.gpr";
+with "rp2040_hal.gpr";
+
+project Uart_Echo_Rp2040 is
+
+   for Target use "arm-eabi";
+   for Runtime ("Ada") use "light-cortex-m0p";
+
+   for Source_Dirs use ("src/", "config/");
+   for Object_Dir use "obj/" & Uart_Echo_Rp2040_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Exec_Dir use "bin";
+   for Main use ("uart_echo_rp2040.adb");
+
+   package Compiler is
+      for Default_Switches ("Ada") use Uart_Echo_Rp2040_Config.Ada_Compiler_Switches;
+   end Compiler;
+
+   package Binder is
+      for Switches ("Ada") use ("-Es"); --  Symbolic traceback
+   end Binder;
+
+   package Install is
+      for Artifacts (".") use ("share");
+   end Install;
+
+   package Linker is
+      for Switches ("Ada") use RP2040_HAL.Linker_Switches;
+   end Linker;
+
+end Uart_Echo_Rp2040;

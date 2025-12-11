@@ -1,0 +1,20 @@
+name = "uart_echo_rp2040"
+description = ""
+version = "0.1.0-dev"
+
+authors = ["Jeremy Grosser"]
+maintainers = ["Jeremy Grosser <jeremy@synack.me>"]
+maintainers-logins = ["JeremyGrosser"]
+licenses = "BSD-3-Clause"
+website = ""
+tags = []
+
+executables = ["uart_echo_rp2040"]
+
+[[depends-on]]
+rp2040_hal = "^2.6.0"
+chests = "~0.2.0"
+softdev = "^1"
+
+[[pins]]
+softdev = { path='../..' }
