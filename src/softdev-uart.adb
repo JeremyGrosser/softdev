@@ -83,7 +83,7 @@ package body Softdev.UART is
             --  RX samples 0.5 bits after the falling edge of START
             RX_Phase := (Phase + Half_Phase) mod Oversample;
          end if;
-      elsif Phase = RX_Phase and then RX_Bits < 8 then
+      elsif Phase = RX_Phase and then RX_Bits < Data_Bits then
          Get_RXD (RX);
          case RX_Count is
             when 1 =>

@@ -5,7 +5,7 @@
 --
 with HAL; use HAL;
 
---  8N1 UART
+--  8N1 UART, LSB first, idle high
 generic
    with procedure Set_TXD (High : Boolean);
    with procedure Get_RXD (High : out Boolean);
