@@ -5,15 +5,15 @@
 --
 package body Softdev.UART is
 
-   Oversample : constant := 2;
    Start_Bit  : constant := 0;
    Data_Bits  : constant := 8;
    Stop_Bits  : constant := 1;
 
-   type Phase_Count is mod Oversample;
-   Phase : Phase_Count := 0;
-   TX_Phase : constant Phase_Count := 0;
-   RX_Phase : constant Phase_Count := 1;
+   subtype Phase_Count is Natural; --  mod Oversample
+   Phase       : Phase_Count := 0;
+   TX_Phase    : constant Phase_Count := 0;
+   RX_Phase    : Phase_Count := 0;
+   Half_Phase  : constant Phase_Count := Phase_Count (Oversample / 2);
 
    TX_Buffer : UInt8 := 0; --  Data to send
    TX_Bits   : UInt8 := 0; --  Bits remaining to send
@@ -76,26 +76,33 @@ package body Softdev.UART is
          end if;
       end if;
 
-      if Phase = RX_Phase and then RX_Bits < 8 then
+      if RX_Count = 0 then
+         Get_RXD (RX);
+         if not RX then
+            --  START
+            RX_Count := RX_Count + 1;
+            --  RX samples 0.5 bits after the falling edge of START
+            RX_Phase := (Phase + Half_Phase) mod Oversample;
+         end if;
+      elsif Phase = RX_Phase and then RX_Bits < 8 then
          Get_RXD (RX);
          case RX_Count is
-            when 0 =>
-               if not RX then
-                  --  START
+            when 1 =>
+               if RX then --  RX transitioned during START: FRAMING ERROR
+                  RX_Count := 0;
+               else
                   RX_Count := RX_Count + 1;
                end if;
-            when 1 .. Data_Bits =>
+            when 2 .. Data_Bits + 1 =>
+               --  START + 1.5, 2.5, 3.5...
                RX_Buffer := Shift_Right (RX_Buffer, 1);
                if RX then
                   RX_Buffer := RX_Buffer or 16#80#;
                end if;
                RX_Bits := RX_Bits + 1;
                RX_Count := RX_Count + 1;
-            when Data_Bits + 1 =>
-               if RX then
-                  RX_Count := RX_Count + 1;
-               end if;
             when Data_Bits + 2 =>
+               --  Wait for STOP
                if RX then
                   RX_Count := 0;
                end if;
@@ -104,7 +111,7 @@ package body Softdev.UART is
          end case;
       end if;
 
-      Phase := Phase + 1;
+      Phase := (Phase + 1) mod Oversample;
    end Poll;
 
 end Softdev.UART;

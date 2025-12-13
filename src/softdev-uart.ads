@@ -6,10 +6,10 @@
 with HAL; use HAL;
 
 --  8N1 UART
---  Call Poll every 52us for 9600 baud
 generic
    with procedure Set_TXD (High : Boolean);
    with procedure Get_RXD (High : out Boolean);
+   Oversample : Positive := 4; --  minimum 3x
 package Softdev.UART is
 
    function Ready_To_Send
@@ -27,6 +27,6 @@ package Softdev.UART is
    with Pre => Data_Ready;
 
    procedure Poll;
-   --  Called every ((1.0 / Baud_Rate) / 2.0) Seconds
+   --  Called every ((1.0 / Baud_Rate) / Oversample) Seconds
 
 end Softdev.UART;

@@ -1,3 +1,9 @@
+--
+--  Copyright (C) 2025 Jeremy Grosser <jeremy@synack.me>
+--
+--  SPDX-License-Identifier: BSD-3-Clause
+--
+pragma Ada_95;
 with Board; use Board;
 with Chests.Ring_Buffers;
 with HAL;
@@ -8,13 +14,9 @@ procedure Uart_Echo_Rp2040 is
        Capacity      => 8);
    use Byte_Buffers;
 
-   Baud_Rate      : constant := 9600;
-   Poll_Interval  : constant Time := (Ticks_Per_Second / Baud_Rate) / 2;
-   Next_Poll      : Time;
-
+   Next_Poll : Time;
    Buffer : Byte_Buffers.Ring_Buffer;
    Data : HAL.UInt8;
-   LED : Boolean := False;
 begin
    Board.Initialize;
    Next_Poll := Clock;
@@ -32,9 +34,6 @@ begin
       if not Is_Empty (Buffer) and then UART_0.Ready_To_Send then
          UART_0.Write (First_Element (Buffer));
          Delete_First (Buffer);
-         LED := not LED;
       end if;
-
-      Set_LED (LED);
    end loop;
 end Uart_Echo_Rp2040;

@@ -1,3 +1,8 @@
+--
+--  Copyright (C) 2025 Jeremy Grosser <jeremy@synack.me>
+--
+--  SPDX-License-Identifier: BSD-3-Clause
+--
 with RP.GPIO; use RP.GPIO;
 with RP.Timer;
 with RP.Clock;
@@ -6,31 +11,22 @@ package body Board is
 
    TXD : GPIO_Point := (Pin => 0);
    RXD : GPIO_Point := (Pin => 1);
-   LED : GPIO_Point := (Pin => 25);
 
    function Clock
       return Time
-   is (Time (RP.Timer.Clock));
-
-   procedure Set_LED
-      (High : Boolean)
    is
    begin
-      if High then
-         LED.Set;
-      else
-         LED.Clear;
-      end if;
-   end Set_LED;
+      return Time (RP.Timer.Clock);
+   end Clock;
 
    procedure Set_TXD
       (High : Boolean)
    is
    begin
       if High then
-         TXD.Set;
+         RP.GPIO.Set (TXD);
       else
-         TXD.Clear;
+         RP.GPIO.Clear (TXD);
       end if;
    end Set_TXD;
 
@@ -38,15 +34,14 @@ package body Board is
       (High : out Boolean)
    is
    begin
-      High := RXD.Set;
+      High := RP.GPIO.Set (RXD);
    end Get_RXD;
 
    procedure Initialize is
    begin
       RP.Clock.Initialize (12_000_000);
-      LED.Configure (Output);
-      TXD.Configure (Output, Pull_Down);
-      RXD.Configure (Input, Pull_Down);
+      RP.GPIO.Configure (TXD, Output, Pull_Down);
+      RP.GPIO.Configure (RXD, Input, Pull_Down);
    end Initialize;
 
 end Board;
