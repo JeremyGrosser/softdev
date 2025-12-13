@@ -5,7 +5,6 @@
 --
 package body Softdev.UART is
 
-   Start_Bit  : constant := 0;
    Data_Bits  : constant := 8;
    Stop_Bits  : constant := 1;
 
